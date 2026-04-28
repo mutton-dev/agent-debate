@@ -1,0 +1,27 @@
+{
+  "name": "agent-debate",
+  "version": "0.1.0",
+  "description": "Multi-Claude debate TUI for AI decision robustness",
+  "type": "module",
+  "bin": { "agent-debate": "dist/index.js" },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "dev": "tsup src/index.ts --format esm --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "ink": "^5.0.0",
+    "react": "^18.0.0",
+    "@types/react": "^18.0.0",
+    "@anthropic-ai/sdk": "^0.30.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0",
+    "@types/node": "^20.0.0"
+  },
+  "engines": { "node": ">=20" }
+}
