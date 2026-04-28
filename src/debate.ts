@@ -39,3 +39,21 @@ function extractText(content: Array<{ type: string; text?: string }>): string {
     .trim();
 }
 
+export async function* runDebate(
+  topic: string,
+  rounds: number,
+  apiKey: string
+): AsyncGenerator<DebateTurn> {
+  const client = new Anthropic({ apiKey });
+  const transcript: Round[] = [];
+  const order: DebateRole[] = ['proponent', 'opponent', 'neutral'];
+
+  for (let r = 1; r <= rounds; r++) {
+    for (const role of order) {
+      const turn = await runDebateTurn(client, role, topic, r, transcript);
+      transcript.push({ role: turn.role, content: turn.content, round: turn.round });
+      yield turn;
+    }
+  }
+}
+
