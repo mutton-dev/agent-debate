@@ -45,8 +45,8 @@ export async function extractConsensus(
   });
 
   const raw = response.content
-    .filter((b: { type: string; text?: string }) => b.type === 'text' && typeof b.text === 'string')
-    .map((b: { text?: string }) => b.text as string)
+    .filter((b): b is { type: 'text'; text: string } => b.type === 'text' && typeof (b as { text?: unknown }).text === 'string')
+    .map((b) => b.text)
     .join('\n')
     .trim();
 
