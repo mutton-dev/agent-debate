@@ -38,7 +38,6 @@ export function App({ topic, rounds, apiKey }: AppProps) {
 
   useEffect(() => {
     let cancelled = false;
-    let stopped = false;
     (async () => {
       try {
         const collected: DebateState['turns'] = [];
@@ -46,10 +45,7 @@ export function App({ topic, rounds, apiKey }: AppProps) {
           if (cancelled) return;
           collected.push(turn);
           setState((s) => appendTurn(s, turn));
-          if (stopRequested) {
-            stopped = true;
-            break;
-          }
+          if (stopRequested) break;
         }
         if (cancelled) return;
         if (collected.length === 0) {
@@ -64,7 +60,6 @@ export function App({ topic, rounds, apiKey }: AppProps) {
         const msg = err instanceof Error ? err.message : String(err);
         setState((s) => setError(s, msg));
       }
-      void stopped;
     })();
     return () => {
       cancelled = true;
