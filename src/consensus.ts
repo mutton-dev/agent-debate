@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { DebateTurn } from './debate.js';
+import { extractText } from './util.js';
 
 export interface ConsensusResult {
   summary: string;
@@ -44,11 +45,7 @@ export async function extractConsensus(
     messages: [{ role: 'user', content: userMessage }],
   });
 
-  const raw = response.content
-    .filter((b): b is { type: 'text'; text: string } => b.type === 'text' && typeof (b as { text?: unknown }).text === 'string')
-    .map((b) => b.text)
-    .join('\n')
-    .trim();
+  const raw = extractText(response.content);
 
   return parseConsensus(raw);
 }
@@ -62,7 +59,7 @@ export function parseConsensus(raw: string): ConsensusResult {
     throw new Error(`Failed to parse consensus JSON: ${(err as Error).message}`);
   }
   if (!isConsensusResult(parsed)) {
-    throw new Error('Consensus response missing required fields');
+    throw new Error('Consensus response missing required fields or confidence values out of range (0-100)');
   }
   return parsed;
 }
@@ -81,9 +78,10 @@ function isConsensusResult(v: unknown): v is ConsensusResult {
   if (!o.dissentingPoints.every((d) => typeof d === 'string')) return false;
   const c = o.confidence as Record<string, unknown> | undefined;
   if (!c || typeof c !== 'object') return false;
+  const inRange = (n: number) => n >= 0 && n <= 100;
   return (
-    typeof c.proponent === 'number' &&
-    typeof c.opponent === 'number' &&
-    typeof c.neutral === 'number'
+    typeof c.proponent === 'number' && inRange(c.proponent as number) &&
+    typeof c.opponent === 'number' && inRange(c.opponent as number) &&
+    typeof c.neutral === 'number' && inRange(c.neutral as number)
   );
 }

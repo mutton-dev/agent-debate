@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import type { DebateRole } from './persona.js';
 import { runDebate } from './debate.js';
@@ -10,6 +10,7 @@ import {
   setError,
   type DebateState,
 } from './state.js';
+import { sanitizeError } from './util.js';
 
 interface AppProps {
   topic: string;
@@ -26,18 +27,19 @@ const ROLE_LABEL: Record<DebateRole, { color: string; icon: string; name: string
 export function App({ topic, rounds, apiKey }: AppProps) {
   const { exit } = useApp();
   const [state, setState] = useState<DebateState>(() => createInitialState(topic, rounds));
-  const [stopRequested, setStopRequested] = useState(false);
+  const stopRequested = useRef(false);
 
   useInput((input) => {
     if (input === 'q') {
       exit();
     } else if (input === 's') {
-      setStopRequested(true);
+      stopRequested.current = true;
     }
   });
 
   useEffect(() => {
     let cancelled = false;
+    stopRequested.current = false;
     (async () => {
       try {
         const collected: DebateState['turns'] = [];
@@ -45,7 +47,7 @@ export function App({ topic, rounds, apiKey }: AppProps) {
           if (cancelled) return;
           collected.push(turn);
           setState((s) => appendTurn(s, turn));
-          if (stopRequested) break;
+          if (stopRequested.current) break;
         }
         if (cancelled) return;
         if (collected.length === 0) {
@@ -58,13 +60,13 @@ export function App({ topic, rounds, apiKey }: AppProps) {
       } catch (err) {
         if (cancelled) return;
         const msg = err instanceof Error ? err.message : String(err);
-        setState((s) => setError(s, msg));
+        setState((s) => setError(s, sanitizeError(msg, apiKey)));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [topic, rounds, apiKey, stopRequested]);
+  }, [topic, rounds, apiKey]);
 
   return (
     <Box flexDirection="column" borderStyle="round" paddingX={1}>

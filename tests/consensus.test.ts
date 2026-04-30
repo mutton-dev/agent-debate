@@ -10,7 +10,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
   })),
 }));
 
-import { extractConsensus } from '../src/consensus.js';
+import { extractConsensus, parseConsensus } from '../src/consensus.js';
 import type { DebateTurn } from '../src/debate.js';
 
 const sampleTurns: DebateTurn[] = [
@@ -84,5 +84,41 @@ describe('extractConsensus', () => {
       content: [{ type: 'text', text: 'not json at all' }],
     });
     await expect(extractConsensus(sampleTurns, 'T', 'k')).rejects.toThrow();
+  });
+});
+
+describe('parseConsensus — confidence range validation', () => {
+  const base = { summary: 'ok', dissentingPoints: [] };
+
+  it('accepts confidence values at boundaries (0 and 100)', () => {
+    const result = parseConsensus(
+      JSON.stringify({ ...base, confidence: { proponent: 0, opponent: 100, neutral: 50 } }),
+    );
+    expect(result.confidence.proponent).toBe(0);
+    expect(result.confidence.opponent).toBe(100);
+  });
+
+  it('throws when proponent confidence exceeds 100', () => {
+    expect(() =>
+      parseConsensus(
+        JSON.stringify({ ...base, confidence: { proponent: 101, opponent: 50, neutral: 50 } }),
+      ),
+    ).toThrow(/out of range/);
+  });
+
+  it('throws when opponent confidence is negative', () => {
+    expect(() =>
+      parseConsensus(
+        JSON.stringify({ ...base, confidence: { proponent: 50, opponent: -1, neutral: 50 } }),
+      ),
+    ).toThrow(/out of range/);
+  });
+
+  it('throws when neutral confidence is out of range', () => {
+    expect(() =>
+      parseConsensus(
+        JSON.stringify({ ...base, confidence: { proponent: 50, opponent: 50, neutral: 999 } }),
+      ),
+    ).toThrow(/out of range/);
   });
 });
